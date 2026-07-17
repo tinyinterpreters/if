@@ -109,6 +109,12 @@ suite =
                 --- The consequent would evaluate to a number
                 --- The alternative would evaluate to a Boolean
                 , ( "if zero?(0) then 2 else zero?(3)", SucceedsWith (VNumber 2) )
+
+                --- Verify that the unselected else branch is not evaluated
+                , ( "if zero?(0) then 2 else -(zero?(0), 1)", SucceedsWith (VNumber 2) )
+
+                --- Verify that the unselected then branch is not evaluated
+                , ( "if zero?(1) then -(zero?(0), 1) else 3", SucceedsWith (VNumber 3) )
                 ]
         ]
 
