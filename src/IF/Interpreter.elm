@@ -72,8 +72,12 @@ runExpr expr =
                         evalZero va
                     )
 
-        If _ _ _ ->
-            Ok <| VNumber 0
+        If condition consequent alternative ->
+            runExpr condition
+                |> Result.andThen
+                    (\vCondition ->
+                        evalIf vCondition consequent alternative
+                    )
 
 
 evalDiff : Value -> Value -> Result RuntimeError Value
@@ -101,6 +105,23 @@ evalZero va =
                 TypeError
                     { expected = [ TNumber ]
                     , actual = [ typeOf va ]
+                    }
+
+
+evalIf : Value -> Expr -> Expr -> Result RuntimeError Value
+evalIf vCondition consequent alternative =
+    case vCondition of
+        VBool True ->
+            runExpr consequent
+
+        VBool False ->
+            runExpr alternative
+
+        _ ->
+            Err <|
+                TypeError
+                    { expected = [ TBool ]
+                    , actual = [ typeOf vCondition ]
                     }
 
 

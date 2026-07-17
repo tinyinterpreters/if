@@ -72,6 +72,43 @@ suite =
                             , actual = [ I.TBool ]
                             }
                   )
+
+                -- Conditionals
+                , ( "if zero?(0) then 2 else 3", SucceedsWith (VNumber 2) )
+
+                --- Liberal whitespace
+                , ( """
+                    if zero? ( 1 ) then
+                        2
+
+                    else
+                        3
+                    """
+                  , SucceedsWith (VNumber 3)
+                  )
+
+                --- Nested conditionals
+                , ( """
+                    if zero?(0) then
+                        if zero?(1) then 2 else 4
+                    else
+                        if zero?(3) then 5 else 7
+                    """
+                  , SucceedsWith (VNumber 4)
+                  )
+
+                --- A non-Boolean condition
+                , ( "if 0 then 2 else 3"
+                  , RuntimeError <|
+                        I.TypeError
+                            { expected = [ I.TBool ]
+                            , actual = [ I.TNumber ]
+                            }
+                  )
+
+                --- The consequent would evaluate to a number
+                --- The alternative would evaluate to a Boolean
+                , ( "if zero?(0) then 2 else zero?(3)", SucceedsWith (VNumber 2) )
                 ]
         ]
 
