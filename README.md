@@ -1,15 +1,15 @@
-# ZERO
+# IF
 
-A tiny interpreter in Elm that adds the `zero?` predicate, Boolean values, and runtime type errors.
+A tiny interpreter in Elm that adds conditional expressions and introduces selective evaluation.
 
-ZERO builds on [DIFF](https://github.com/tinyinterpreters/diff), where expressions first became recursive. Adding a Boolean-producing expression removes the assumption that every expression evaluates to a number and requires operations to check the values they receive.
+IF builds on [ZERO](https://github.com/tinyinterpreters/zero) by turning Boolean values from results into decisions.
 
-Read [ZERO: Adding Booleans and Runtime Type Errors to a Tiny Interpreter in Elm](https://blog.tinyinterpreters.dev/posts/zero) for a guided explanation of how it works.
+Read [IF: Adding Conditional Expressions to a Tiny Interpreter in Elm](https://blog.tinyinterpreters.dev/posts/if) for a guided explanation of how it works.
 
 ```mermaid
 flowchart TD
-    A["zero?(-(1, 1))"] -->|parse| B["Program (Zero (Diff (Const 1) (Const 1)))"]
-    B -->|runProgram| C["VBool True"]
+    A["if zero?(0) then 2 else 3"] -->|parse| B["Program (If (Zero (Const 0)) (Const 2) (Const 3))"]
+    B -->|runProgram| C["VNumber 2"]
 ```
 
 ## Usage
@@ -19,61 +19,71 @@ You’ll need [Nix](https://nixos.org/) with flakes enabled.
 Enter the development environment and start the Elm REPL:
 
 ```bash
-$ nix develop
-$ elm repl
+nix develop
+elm repl
 ```
 
 Import the interpreter and run a program:
 
 ```elm
-> import ZERO.Interpreter as I
-> I.run "zero?(-(1, 1))"
-```
+import IF.Interpreter as I
 
-The program evaluates the difference expression first and then tests whether its result is zero. It succeeds with:
-
-```elm
-Ok (VBool True)
+I.run "if zero?(0) then 2 else 3"
+-- Ok (VNumber 2)
 ```
 
 ## Language
 
-ZERO supports non-negative integer constants:
+IF supports non-negative integer constants:
 
 ```txt
 123
 ```
 
-difference expressions:
+Difference expressions:
 
 ```txt
--(456, 123)
+-(5, 3)
 ```
 
-and the `zero?` predicate:
+The `zero?` predicate:
 
 ```txt
-zero?(-(1, 1))
+zero?(0)
 ```
 
-The `zero?` predicate evaluates its operand and produces:
+And conditional expressions:
 
-* `VBool True` when the result is the number `0`
-* `VBool False` when the result is any other number
-* a runtime type error when the result is not a number
+```txt
+if zero?(0) then 2 else 3
+```
 
-## Runtime errors
+A conditional expression evaluates its condition first. The condition must produce a Boolean value; otherwise, evaluation fails with a runtime type error.
 
-The grammar permits any expression as an operand, but operations still require particular kinds of values.
+If the condition evaluates to `true`, the then branch is evaluated. If it evaluates to `false`, the else branch is evaluated.
+
+The two branches do not need to produce the same kind of value.
+
+## Conditional expressions
+
+The main change in IF is that the interpreter cannot evaluate every subexpression before deciding what to do.
+
+The condition is evaluated first, but the two branches remain as expressions:
+
+```elm
+evalIf : Value -> Expr -> Expr -> Result RuntimeError Value
+```
+
+The resulting Boolean value selects which branch is passed to the evaluator. Only the selected branch is evaluated; the other branch remains unevaluated.
 
 For example:
 
 ```txt
-zero?(zero?(0))
+if zero?(0) then 2 else -(zero?(0), 1)
 ```
 
-is valid syntax. However, the inner `zero?` produces a Boolean while the outer `zero?` requires a number, so evaluation fails with a runtime type error.
+The else branch would produce a runtime type error if evaluated. Because the condition evaluates to `true`, only the then branch is evaluated and the complete expression produces `VNumber 2`.
 
 ## Tiny Interpreters
 
-ZERO is part of Tiny Interpreters, a series about learning how programming languages work by building small interpreters in Elm.
+IF is part of [Tiny Interpreters](https://blog.tinyinterpreters.dev), a blog about learning how programming languages work by building small interpreters in Elm.
