@@ -28,6 +28,7 @@ expr =
         [ constExpr
         , diffExpr
         , zeroExpr
+        , ifExpr
         ]
 
 
@@ -59,3 +60,14 @@ zeroExpr =
         |. L.symbol "("
         |= P.lazy (\_ -> expr)
         |. L.symbol ")"
+
+
+ifExpr : Parser Expr
+ifExpr =
+    P.succeed If
+        |. L.keyword "if"
+        |= P.lazy (\_ -> expr)
+        |. L.keyword "then"
+        |= P.lazy (\_ -> expr)
+        |. L.keyword "else"
+        |= P.lazy (\_ -> expr)

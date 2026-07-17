@@ -45,5 +45,43 @@ suite =
                     """
                   , Just (Program (Zero (Diff (Const 0) (Const 1))))
                   )
+
+                -- Conditionals
+                , ( "if zero?(0) then 2 else 3", Just (Program (If (Zero (Const 0)) (Const 2) (Const 3))) )
+
+                --- Liberal whitespace
+                , ( """
+                    if zero? ( 1 ) then
+                        2
+
+                    else
+                        3
+                    """
+                  , Just (Program (If (Zero (Const 1)) (Const 2) (Const 3)))
+                  )
+
+                --- Nested conditionals
+                , ( """
+                    if zero?(0) then
+                        if zero?(1) then 2 else 4
+                    else
+                        if zero?(3) then 5 else 7
+                    """
+                  , Just
+                        (Program
+                            (If
+                                (Zero (Const 0))
+                                (If (Zero (Const 1)) (Const 2) (Const 4))
+                                (If (Zero (Const 3)) (Const 5) (Const 7))
+                            )
+                        )
+                  )
+
+                --- A non-Boolean condition
+                , ( "if 0 then 2 else 3", Just (Program (If (Const 0) (Const 2) (Const 3))) )
+
+                --- The consequent would evaluate to a number
+                --- The alternative would evaluate to a Boolean
+                , ( "if zero?(0) then 2 else zero?(3)", Just (Program (If (Zero (Const 0)) (Const 2) (Zero (Const 3)))) )
                 ]
         ]
