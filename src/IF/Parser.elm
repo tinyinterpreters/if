@@ -1,8 +1,8 @@
-module ZERO.Parser exposing (Error, parse)
+module IF.Parser exposing (Error, parse)
 
+import IF.AST as AST exposing (..)
+import IF.Lexer as L
 import Parser as P exposing ((|.), (|=), Parser)
-import ZERO.AST as AST exposing (..)
-import ZERO.Lexer as L
 
 
 type alias Error =

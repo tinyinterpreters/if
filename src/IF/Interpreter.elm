@@ -1,4 +1,4 @@
-module ZERO.Interpreter exposing
+module IF.Interpreter exposing
     ( Error(..)
     , RuntimeError(..)
     , Type(..)
@@ -6,8 +6,8 @@ module ZERO.Interpreter exposing
     , run
     )
 
-import ZERO.AST as AST exposing (..)
-import ZERO.Parser as P
+import IF.AST as AST exposing (..)
+import IF.Parser as P
 
 
 type Value

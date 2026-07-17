@@ -6,7 +6,7 @@
       in
       {
         devShells.default = pkgs.mkShell {
-          name = "zero";
+          name = "if";
 
           packages = [
             pkgs.elmPackages.elm

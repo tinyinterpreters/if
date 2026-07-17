@@ -1,4 +1,4 @@
-module ZERO.Lexer exposing (digits, keyword, spaces, symbol)
+module IF.Lexer exposing (digits, keyword, spaces, symbol)
 
 import Parser as P exposing ((|.), (|=), Parser)
 

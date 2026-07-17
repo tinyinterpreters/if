@@ -1,14 +1,14 @@
-module Test.ZERO.Parser exposing (suite)
+module Test.IF.Parser exposing (suite)
 
+import IF.AST as AST exposing (..)
+import IF.Parser as P
 import Test exposing (Test, describe)
 import Test.Lib exposing (testValue)
-import ZERO.AST as AST exposing (..)
-import ZERO.Parser as P
 
 
 suite : Test
 suite =
-    describe "ZERO.Parser"
+    describe "IF.Parser"
         [ describe "parse" <|
             List.map (testValue P.parse)
                 -- Constant expressions
