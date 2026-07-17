@@ -2,9 +2,11 @@ Program ::= Expr
 Expr    ::= Const
           | Diff
           | Zero
+          | If
 Const   ::= Number
 Diff    ::= '-' '(' Expr ',' Expr ')'
 Zero    ::= 'zero?' '(' Expr ')'
+If      ::= 'if' Expr 'then' Expr 'else' Expr
 Number  ::= [0-9]+
 
 /* Use https://www.bottlecaps.de/rr/ui to view it as a Railroad Diagram. */

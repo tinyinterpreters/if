@@ -14,11 +14,13 @@ Program  ::= Expr
 Expr     ::= Const
            | Diff
            | Zero
+           | If
 ```
 
 referenced by:
 
 * Diff
+* If
 * Program
 * Zero
 
@@ -52,6 +54,18 @@ referenced by:
 
 ```
 Zero     ::= 'zero?' '(' Expr ')'
+```
+
+referenced by:
+
+* Expr
+
+**If:**
+
+![If](diagram/If.svg)
+
+```
+If       ::= 'if' Expr 'then' Expr 'else' Expr
 ```
 
 referenced by:
