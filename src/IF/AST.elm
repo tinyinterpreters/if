@@ -13,6 +13,7 @@ type Expr
     = Const Number
     | Diff Expr Expr
     | Zero Expr
+    | If Expr Expr Expr
 
 
 type alias Number =
