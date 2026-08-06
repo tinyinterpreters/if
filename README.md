@@ -14,7 +14,7 @@ flowchart TD
 
 ## Usage
 
-You’ll need [Nix](https://nixos.org/) with flakes enabled.
+You’ll need [Nix](https://zero-to-nix.com/start/install/) with flakes enabled.
 
 Enter the development environment and start the Elm REPL:
 
