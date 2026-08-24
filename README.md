@@ -9,7 +9,7 @@ Read [IF: Adding Conditional Expressions to a Tiny Interpreter in Elm](https://b
 ```mermaid
 flowchart TD
     A["if zero?(0) then 2 else 3"] -->|parse| B["Program (If (Zero (Const 0)) (Const 2) (Const 3))"]
-    B -->|runProgram| C["VNumber 2"]
+    B -->|evaluate| C["VNumber 2"]
 ```
 
 ## Usage
@@ -86,4 +86,4 @@ The else branch would produce a runtime type error if evaluated. Because the con
 
 ## Tiny Interpreters
 
-IF is part of [Tiny Interpreters](https://blog.tinyinterpreters.dev), a blog about learning how programming languages work by building small interpreters in Elm.
+IF is part of [Tiny Interpreters](https://blog.tinyinterpreters.dev), where we learn how programming languages work by building tiny interpreters.
