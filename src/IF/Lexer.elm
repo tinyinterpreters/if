@@ -1,9 +1,10 @@
 module IF.Lexer exposing (digits, keyword, spaces, symbol)
 
+import IF.AST exposing (Located)
 import Parser as P exposing ((|.), (|=), Parser)
 
 
-digits : Parser Int
+digits : Parser (Located Int)
 digits =
     chompOneOrMore Char.isDigit
         |> P.getChompedString
@@ -18,20 +19,22 @@ chompOneOrMore isGood =
         |. P.chompWhile isGood
 
 
-keyword : String -> Parser ()
+keyword : String -> Parser (Located ())
 keyword =
     lexeme << P.keyword
 
 
-symbol : String -> Parser ()
+symbol : String -> Parser (Located ())
 symbol =
     lexeme << P.symbol
 
 
-lexeme : Parser a -> Parser a
+lexeme : Parser a -> Parser (Located a)
 lexeme p =
-    P.succeed identity
+    P.succeed Located
+        |= P.getOffset
         |= p
+        |= P.getOffset
         |. spaces
 
 
