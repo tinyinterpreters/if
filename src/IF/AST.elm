@@ -14,14 +14,14 @@ type alias Located a =
 
 
 type Program
-    = Program Expr
+    = Program (Located Expr)
 
 
 type Expr
-    = Const Number
-    | Diff Expr Expr
-    | Zero Expr
-    | If Expr Expr Expr
+    = Const (Located Number)
+    | Diff (Located Expr) (Located Expr)
+    | Zero (Located Expr)
+    | If (Located Expr) (Located Expr) (Located Expr)
 
 
 type alias Number =

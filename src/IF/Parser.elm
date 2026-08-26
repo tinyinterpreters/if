@@ -22,7 +22,7 @@ program =
         |. P.end
 
 
-expr : Parser Expr
+expr : Parser (Located Expr)
 expr =
     P.oneOf
         [ constExpr
@@ -32,40 +32,65 @@ expr =
         ]
 
 
-constExpr : Parser Expr
+constExpr : Parser (Located Expr)
 constExpr =
-    P.map Const number
+    P.map
+        (\n ->
+            Located
+                n.start
+                (Const n)
+                n.end
+        )
+        number
 
 
-number : Parser Number
+number : Parser (Located Number)
 number =
     L.digits
 
 
-diffExpr : Parser Expr
+diffExpr : Parser (Located Expr)
 diffExpr =
-    P.succeed Diff
-        |. L.symbol "-"
+    P.succeed
+        (\symMinus left right symRightParen ->
+            Located
+                symMinus.start
+                (Diff left right)
+                symRightParen.end
+        )
+        |= L.symbol "-"
         |. L.symbol "("
         |= P.lazy (\_ -> expr)
         |. L.symbol ","
         |= P.lazy (\_ -> expr)
-        |. L.symbol ")"
+        |= L.symbol ")"
 
 
-zeroExpr : Parser Expr
+zeroExpr : Parser (Located Expr)
 zeroExpr =
-    P.succeed Zero
-        |. L.keyword "zero?"
+    P.succeed
+        (\kwdZero testExpr ->
+            Located
+                kwdZero.start
+                (Zero testExpr)
+                testExpr.end
+        )
+        |= L.keyword "zero?"
         |. L.symbol "("
         |= P.lazy (\_ -> expr)
         |. L.symbol ")"
 
 
-ifExpr : Parser Expr
+ifExpr : Parser (Located Expr)
 ifExpr =
-    P.succeed If
-        |. L.keyword "if"
+    P.succeed
+        (\kwdIf condition consequent alternative ->
+            Located
+                kwdIf.start
+                (If condition consequent alternative)
+                alternative.end
+        )
+        |= L.keyword "if"
         |= P.lazy (\_ -> expr)
         |. L.keyword "then"
         |= P.lazy (\_ -> expr)
