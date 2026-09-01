@@ -1,29 +1,22 @@
 module IF.Stepper exposing
-    ( Control(..)
-    , Kont(..)
+    ( Continuation(..)
+    , Control(..)
     , RuntimeError(..)
     , State
     , StepResult(..)
-    , SyntaxError
     , Type(..)
     , Value(..)
     , start
-    , stateToString
     , step
-    , valueToString
+    , stepResultToString
     )
 
 import IF.AST as AST exposing (..)
-import IF.Parser as P
 
 
 type Value
     = VNumber Number
     | VBool Bool
-
-
-type alias SyntaxError =
-    P.Error
 
 
 type RuntimeError
@@ -40,58 +33,62 @@ type Type
 
 type alias State =
     { control : Control
-    , k : Kont
+    , k : Continuation
     }
 
 
 type Control
     = Evaluate Expr
-    | Good Value
-    | Bad RuntimeError
+    | Return Value
+    | Fail RuntimeError
 
 
-type Kont
+type Continuation
     = Done
-    | DiffLeft Expr Kont
-    | DiffRight Value Kont
-    | ZeroOperand Kont
-    | IfCondition Expr Expr Kont
+    | DiffLeft Expr Continuation
+    | DiffRight Value Continuation
+    | ZeroOperand Continuation
+    | IfCondition Expr Expr Continuation
 
 
 type StepResult
-    = Continue State
-    | Halt (Result RuntimeError Value)
+    = Running State
+    | Halted (Result RuntimeError Value)
 
 
-start : String -> Result SyntaxError State
-start input =
-    case P.parse input of
-        Ok (Program expr) ->
-            Ok { control = Evaluate expr, k = Done }
-
-        Err err ->
-            Err err
+start : AST.Program -> StepResult
+start (Program expr) =
+    Running
+        { control = Evaluate expr
+        , k = Done
+        }
 
 
-step : State -> StepResult
-step ({ control, k } as state) =
-    case control of
-        Evaluate expr ->
-            stepExpr expr k
+step : StepResult -> Maybe StepResult
+step result =
+    case result of
+        Running { control, k } ->
+            Just <|
+                case control of
+                    Evaluate expr ->
+                        stepExpr expr k
 
-        Good value ->
-            applyK value k
+                    Return value ->
+                        applyK value k
 
-        Bad err ->
-            Halt <| Err err
+                    Fail err ->
+                        Halted <| Err err
+
+        Halted _ ->
+            Nothing
 
 
-stepExpr : Expr -> Kont -> StepResult
+stepExpr : Expr -> Continuation -> StepResult
 stepExpr expr k =
-    Continue <|
+    Running <|
         case expr of
             Const n ->
-                { control = Good <| VNumber n
+                { control = Return <| VNumber n
                 , k = k
                 }
 
@@ -111,32 +108,32 @@ stepExpr expr k =
                 }
 
 
-applyK : Value -> Kont -> StepResult
+applyK : Value -> Continuation -> StepResult
 applyK value k =
     case k of
         Done ->
-            Halt <| Ok value
+            Halted <| Ok value
 
         DiffLeft b nextK ->
-            Continue
+            Running
                 { control = Evaluate b
                 , k = DiffRight value nextK
                 }
 
         DiffRight va nextK ->
-            Continue
+            Running
                 { control = evalDiff va value
                 , k = nextK
                 }
 
         ZeroOperand nextK ->
-            Continue
+            Running
                 { control = evalZero value
                 , k = nextK
                 }
 
         IfCondition consequent alternative nextK ->
-            Continue
+            Running
                 { control = evalIf value consequent alternative
                 , k = nextK
                 }
@@ -146,10 +143,10 @@ evalDiff : Value -> Value -> Control
 evalDiff va vb =
     case ( va, vb ) of
         ( VNumber a, VNumber b ) ->
-            Good <| VNumber <| a - b
+            Return <| VNumber <| a - b
 
         _ ->
-            Bad <|
+            Fail <|
                 TypeError
                     { expected = [ TNumber, TNumber ]
                     , actual = [ typeOf va, typeOf vb ]
@@ -160,10 +157,10 @@ evalZero : Value -> Control
 evalZero va =
     case va of
         VNumber a ->
-            Good <| VBool <| a == 0
+            Return <| VBool <| a == 0
 
         _ ->
-            Bad <|
+            Fail <|
                 TypeError
                     { expected = [ TNumber ]
                     , actual = [ typeOf va ]
@@ -180,7 +177,7 @@ evalIf vCondition consequent alternative =
             Evaluate alternative
 
         _ ->
-            Bad <|
+            Fail <|
                 TypeError
                     { expected = [ TBool ]
                     , actual = [ typeOf vCondition ]
@@ -197,57 +194,70 @@ typeOf v =
             TBool
 
 
+stepResultToString : StepResult -> String
+stepResultToString result =
+    case result of
+        Running state ->
+            stateToString state
+
+        Halted (Ok value) ->
+            valueToString False value
+
+        Halted (Err _) ->
+            "Type error"
+
+
 stateToString : State -> String
 stateToString { control, k } =
     case control of
         Evaluate expr ->
             stateToStringHelper ("[" ++ exprToString expr ++ "]") False k
 
-        Good value ->
-            stateToStringHelper (valueToString value) True k
+        Return value ->
+            stateToStringHelper (valueToString True value) True k
 
-        Bad _ ->
-            "Bad"
-
-
-highlight : Bool -> String -> String
-highlight b s =
-    if b then
-        "[" ++ s ++ "]"
-
-    else
-        s
+        Fail _ ->
+            stateToStringHelper "{Type error}" True k
 
 
-stateToStringHelper : String -> Bool -> Kont -> String
-stateToStringHelper s h k =
+stateToStringHelper : String -> Bool -> Continuation -> String
+stateToStringHelper s shouldWrap k =
     case k of
         Done ->
             s
 
         DiffLeft b nextK ->
             stateToStringHelper
-                (highlight h <| "-(" ++ s ++ ", " ++ exprToString b ++ ")")
+                (highlightIf shouldWrap <| "-(" ++ s ++ ", " ++ exprToString b ++ ")")
                 False
                 nextK
 
         DiffRight va nextK ->
             stateToStringHelper
-                (highlight h <| "-(" ++ valueToString va ++ ", " ++ s ++ ")")
+                (highlightIf shouldWrap <| "-(" ++ valueToString True va ++ ", " ++ s ++ ")")
                 False
                 nextK
 
         ZeroOperand nextK ->
             stateToStringHelper
-                (highlight h <| "zero?(" ++ s ++ ")")
+                (highlightIf shouldWrap <| "zero?(" ++ s ++ ")")
                 False
                 nextK
 
         IfCondition consequent alternative nextK ->
             stateToStringHelper
-                (highlight h <| "if " ++ s ++ " then " ++ exprToString consequent ++ " else " ++ exprToString alternative)
+                (highlightIf shouldWrap <| "if " ++ s ++ " then " ++ exprToString consequent ++ " else " ++ exprToString alternative)
                 False
                 nextK
+
+
+highlightIf : Bool -> String -> String
+highlightIf shouldWrap s =
+    if shouldWrap then
+        "[" ++ s ++ "]"
+
+    else
+        s
 
 
 exprToString : Expr -> String
@@ -266,8 +276,8 @@ exprToString expr =
             "if " ++ exprToString condition ++ " then " ++ exprToString consequent ++ " else " ++ exprToString alternative
 
 
-valueToString : Value -> String
-valueToString value =
+valueToString : Bool -> Value -> String
+valueToString shouldWrap value =
     let
         inner =
             case value of
@@ -281,4 +291,8 @@ valueToString value =
                     else
                         "false"
     in
-    "{" ++ inner ++ "}"
+    if shouldWrap then
+        "{" ++ inner ++ "}"
+
+    else
+        inner

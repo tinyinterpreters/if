@@ -4,6 +4,8 @@ import Browser as B
 import Html as H exposing (Html)
 import Html.Attributes as HA
 import Html.Events as HE
+import IF.AST as AST
+import IF.Parser as P
 import IF.Stepper as Stepper
 
 
@@ -22,22 +24,20 @@ main =
 
 type alias Model =
     { source : String
-    , state : State
+    , phase : Phase
     }
 
 
-type State
-    = Off
-    | Ready Stepper.State
-    | Running Stepper.StepResult
-    | Success Stepper.Value
-    | Failure
+type Phase
+    = Editing
+    | Ready AST.Program
+    | Stepping Stepper.StepResult
 
 
-isRunning : State -> Bool
-isRunning state =
-    case state of
-        Running _ ->
+isRunning : Phase -> Bool
+isRunning phase =
+    case phase of
+        Stepping (Stepper.Running _) ->
             True
 
         _ ->
@@ -47,7 +47,7 @@ isRunning state =
 init : Model
 init =
     { source = ""
-    , state = Off
+    , phase = Editing
     }
 
 
@@ -56,42 +56,39 @@ init =
 
 
 type Msg
-    = EnteredSource String
-    | ClickedStart
-    | ClickedStep
+    = SourceChanged String
+    | StartClicked
+    | StepClicked
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        EnteredSource source ->
-            case Stepper.start source of
-                Ok state ->
-                    { model | source = source, state = Ready state }
+        SourceChanged source ->
+            case P.parse source of
+                Ok program ->
+                    { model | source = source, phase = Ready program }
 
                 Err _ ->
-                    { model | source = source }
+                    { model | source = source, phase = Editing }
 
-        ClickedStart ->
-            case model.state of
-                Ready stepperState ->
-                    { model | state = Running <| Stepper.Continue stepperState }
+        StartClicked ->
+            case model.phase of
+                Ready program ->
+                    { model | phase = Stepping <| Stepper.start program }
 
                 _ ->
                     model
 
-        ClickedStep ->
-            case model.state of
-                Running (Stepper.Continue stepperState) ->
-                    { model | state = Running <| Stepper.step stepperState }
+        StepClicked ->
+            case model.phase of
+                Stepping result ->
+                    case Stepper.step result of
+                        Just nextResult ->
+                            { model | phase = Stepping nextResult }
 
-                Running (Stepper.Halt result) ->
-                    case result of
-                        Ok value ->
-                            { model | state = Success value }
-
-                        Err _ ->
-                            { model | state = Failure }
+                        Nothing ->
+                            model
 
                 _ ->
                     model
@@ -102,7 +99,7 @@ update msg model =
 
 
 view : Model -> Html Msg
-view { source, state } =
+view { source, phase } =
     H.div []
         [ H.textarea
             [ HA.rows 10
@@ -110,67 +107,45 @@ view { source, state } =
             , HA.placeholder "if zero?(0) then 2 else 3"
             , HA.spellcheck False
             , HA.value source
-            , HA.disabled (isRunning state)
-            , HE.onInput EnteredSource
+            , HA.disabled (isRunning phase)
+            , HE.onInput SourceChanged
             ]
             []
         , H.button
             [ HA.type_ "button"
             , HA.disabled <|
-                case state of
-                    Ready stepperState ->
+                case phase of
+                    Ready _ ->
                         False
 
-                    Running stepResult ->
-                        case stepResult of
-                            Stepper.Continue _ ->
-                                False
-
-                            Stepper.Halt _ ->
-                                True
+                    Stepping (Stepper.Running _) ->
+                        False
 
                     _ ->
                         True
-            , case state of
-                Ready stepperState ->
-                    HE.onClick ClickedStart
+            , case phase of
+                Ready _ ->
+                    HE.onClick StartClicked
 
-                Running stepperState ->
-                    HE.onClick ClickedStep
+                Stepping (Stepper.Running _) ->
+                    HE.onClick StepClicked
 
                 _ ->
                     HA.class ""
             ]
             [ H.text <|
-                case state of
-                    Off ->
-                        "Start"
-
-                    Ready _ ->
-                        "Start"
+                case phase of
+                    Stepping _ ->
+                        "Step"
 
                     _ ->
-                        "Step"
+                        "Start"
             ]
         , H.p []
             [ H.text <|
-                case state of
-                    Running (Stepper.Continue stepperState) ->
-                        Stepper.stateToString stepperState
-
-                    Running (Stepper.Halt result) ->
-                        case result of
-                            Ok value ->
-                                Stepper.valueToString value
-
-                            Err _ ->
-                                "Failed!"
-
-                    Success value ->
-                        Stepper.valueToString value
-
-                    Failure ->
-                        "Failed!"
+                case phase of
+                    Stepping result ->
+                        Stepper.stepResultToString result
 
                     _ ->
                         ""
