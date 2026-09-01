@@ -45,17 +45,17 @@ type alias State =
 
 
 type Control
-    = Evaluate (Located Expr)
+    = Evaluate Expr
     | Good Value
     | Bad RuntimeError
 
 
 type Kont
     = Done
-    | DiffLeft (Located Expr) Kont
+    | DiffLeft Expr Kont
     | DiffRight Value Kont
     | ZeroOperand Kont
-    | IfCondition (Located Expr) (Located Expr) Kont
+    | IfCondition Expr Expr Kont
 
 
 type StepResult
@@ -77,7 +77,7 @@ step : State -> StepResult
 step ({ control, k } as state) =
     case control of
         Evaluate expr ->
-            stepExpr expr.value k
+            stepExpr expr k
 
         Good value ->
             applyK value k
@@ -91,7 +91,7 @@ stepExpr expr k =
     Continue <|
         case expr of
             Const n ->
-                { control = Good <| VNumber n.value
+                { control = Good <| VNumber n
                 , k = k
                 }
 
@@ -170,7 +170,7 @@ evalZero va =
                     }
 
 
-evalIf : Value -> Located Expr -> Located Expr -> Control
+evalIf : Value -> Expr -> Expr -> Control
 evalIf vCondition consequent alternative =
     case vCondition of
         VBool True ->
@@ -201,7 +201,7 @@ stateToString : State -> String
 stateToString { control, k } =
     case control of
         Evaluate expr ->
-            stateToStringHelper ("[" ++ exprToString expr.value ++ "]") False k
+            stateToStringHelper ("[" ++ exprToString expr ++ "]") False k
 
         Good value ->
             stateToStringHelper (valueToString value) True k
@@ -227,7 +227,7 @@ stateToStringHelper s h k =
 
         DiffLeft b nextK ->
             stateToStringHelper
-                (highlight h <| "-(" ++ s ++ ", " ++ exprToString b.value ++ ")")
+                (highlight h <| "-(" ++ s ++ ", " ++ exprToString b ++ ")")
                 False
                 nextK
 
@@ -245,7 +245,7 @@ stateToStringHelper s h k =
 
         IfCondition consequent alternative nextK ->
             stateToStringHelper
-                (highlight h <| "if " ++ s ++ " then " ++ exprToString consequent.value ++ " else " ++ exprToString alternative.value)
+                (highlight h <| "if " ++ s ++ " then " ++ exprToString consequent ++ " else " ++ exprToString alternative)
                 False
                 nextK
 
@@ -254,16 +254,16 @@ exprToString : Expr -> String
 exprToString expr =
     case expr of
         Const n ->
-            String.fromInt n.value
+            String.fromInt n
 
         Diff a b ->
-            "-(" ++ exprToString a.value ++ ", " ++ exprToString b.value ++ ")"
+            "-(" ++ exprToString a ++ ", " ++ exprToString b ++ ")"
 
         Zero a ->
-            "zero?(" ++ exprToString a.value ++ ")"
+            "zero?(" ++ exprToString a ++ ")"
 
         If condition consequent alternative ->
-            "if " ++ exprToString condition.value ++ " then " ++ exprToString consequent.value ++ " else " ++ exprToString alternative.value
+            "if " ++ exprToString condition ++ " then " ++ exprToString consequent ++ " else " ++ exprToString alternative
 
 
 valueToString : Value -> String
