@@ -1,8 +1,8 @@
 module IF.AST exposing
     ( Expr(..)
+    , Located
     , Number
     , Program(..)
-    , Located
     )
 
 
