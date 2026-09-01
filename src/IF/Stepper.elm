@@ -1,14 +1,16 @@
 module IF.Stepper exposing
     ( Control(..)
-    , Error(..)
     , Kont(..)
     , RuntimeError(..)
     , State
     , StepResult(..)
+    , SyntaxError
     , Type(..)
     , Value(..)
     , start
+    , stateToString
     , step
+    , valueToString
     )
 
 import IF.AST as AST exposing (..)
@@ -20,9 +22,8 @@ type Value
     | VBool Bool
 
 
-type Error
-    = SyntaxError P.Error
-    | RuntimeError RuntimeError
+type alias SyntaxError =
+    P.Error
 
 
 type RuntimeError
@@ -46,7 +47,7 @@ type alias State =
 type Control
     = Evaluate (Located Expr)
     | Good Value
-    | Bad Error
+    | Bad RuntimeError
 
 
 type Kont
@@ -59,20 +60,17 @@ type Kont
 
 type StepResult
     = Continue State
-    | Halt (Result Error Value)
+    | Halt (Result RuntimeError Value)
 
 
-start : String -> State
+start : String -> Result SyntaxError State
 start input =
-    { control =
-        case P.parse input of
-            Ok (Program locatedExpr) ->
-                Evaluate locatedExpr
+    case P.parse input of
+        Ok (Program expr) ->
+            Ok { control = Evaluate expr, k = Done }
 
-            Err err ->
-                Bad <| SyntaxError err
-    , k = Done
-    }
+        Err err ->
+            Err err
 
 
 step : State -> StepResult
@@ -152,11 +150,10 @@ evalDiff va vb =
 
         _ ->
             Bad <|
-                RuntimeError <|
-                    TypeError
-                        { expected = [ TNumber, TNumber ]
-                        , actual = [ typeOf va, typeOf vb ]
-                        }
+                TypeError
+                    { expected = [ TNumber, TNumber ]
+                    , actual = [ typeOf va, typeOf vb ]
+                    }
 
 
 evalZero : Value -> Control
@@ -167,11 +164,10 @@ evalZero va =
 
         _ ->
             Bad <|
-                RuntimeError <|
-                    TypeError
-                        { expected = [ TNumber ]
-                        , actual = [ typeOf va ]
-                        }
+                TypeError
+                    { expected = [ TNumber ]
+                    , actual = [ typeOf va ]
+                    }
 
 
 evalIf : Value -> Located Expr -> Located Expr -> Control
@@ -185,11 +181,10 @@ evalIf vCondition consequent alternative =
 
         _ ->
             Bad <|
-                RuntimeError <|
-                    TypeError
-                        { expected = [ TBool ]
-                        , actual = [ typeOf vCondition ]
-                        }
+                TypeError
+                    { expected = [ TBool ]
+                    , actual = [ typeOf vCondition ]
+                    }
 
 
 typeOf : Value -> Type
@@ -200,3 +195,86 @@ typeOf v =
 
         VBool _ ->
             TBool
+
+
+stateToString : State -> String
+stateToString { control, k } =
+    case control of
+        Evaluate expr ->
+            stateToStringHelper ("[" ++ exprToString expr.value ++ "]") False k
+
+        Good value ->
+            stateToStringHelper ("{" ++ valueToString value ++ "}") True k
+
+        Bad _ ->
+            "Bad"
+
+
+highlight : Bool -> String -> String
+highlight b s =
+    if b then
+        "[" ++ s ++ "]"
+
+    else
+        s
+
+
+stateToStringHelper : String -> Bool -> Kont -> String
+stateToStringHelper s h k =
+    case k of
+        Done ->
+            s
+
+        DiffLeft b nextK ->
+            stateToStringHelper
+                (highlight h <| "-(" ++ s ++ ", " ++ exprToString b.value ++ ")")
+                False
+                nextK
+
+        DiffRight va nextK ->
+            stateToStringHelper
+                (highlight h <| "-(" ++ valueToString va ++ ", " ++ s ++ ")")
+                False
+                nextK
+
+        ZeroOperand nextK ->
+            stateToStringHelper
+                (highlight h <| "zero?(" ++ s ++ ")")
+                False
+                nextK
+
+        IfCondition consequent alternative nextK ->
+            stateToStringHelper
+                (highlight h <| "if " ++ s ++ " then " ++ exprToString consequent.value ++ " else " ++ exprToString alternative.value)
+                False
+                nextK
+
+
+exprToString : Expr -> String
+exprToString expr =
+    case expr of
+        Const n ->
+            String.fromInt n.value
+
+        Diff a b ->
+            "-(" ++ exprToString a.value ++ ", " ++ exprToString b.value ++ ")"
+
+        Zero a ->
+            "zero?(" ++ exprToString a.value ++ ")"
+
+        If condition consequent alternative ->
+            "if " ++ exprToString condition.value ++ " then " ++ exprToString consequent.value ++ " else " ++ exprToString alternative.value
+
+
+valueToString : Value -> String
+valueToString value =
+    case value of
+        VNumber n ->
+            String.fromInt n
+
+        VBool b ->
+            if b then
+                "true"
+
+            else
+                "false"
