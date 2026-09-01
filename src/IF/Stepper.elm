@@ -1,6 +1,10 @@
 module IF.Stepper exposing
-    ( Error(..)
+    ( Control(..)
+    , Error(..)
+    , Kont(..)
     , RuntimeError(..)
+    , State
+    , StepResult(..)
     , Type(..)
     , Value(..)
     , start
