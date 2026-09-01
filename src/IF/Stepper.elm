@@ -204,7 +204,7 @@ stateToString { control, k } =
             stateToStringHelper ("[" ++ exprToString expr.value ++ "]") False k
 
         Good value ->
-            stateToStringHelper ("{" ++ valueToString value ++ "}") True k
+            stateToStringHelper (valueToString value) True k
 
         Bad _ ->
             "Bad"
@@ -268,13 +268,17 @@ exprToString expr =
 
 valueToString : Value -> String
 valueToString value =
-    case value of
-        VNumber n ->
-            String.fromInt n
+    let
+        inner =
+            case value of
+                VNumber n ->
+                    String.fromInt n
 
-        VBool b ->
-            if b then
-                "true"
+                VBool b ->
+                    if b then
+                        "true"
 
-            else
-                "false"
+                    else
+                        "false"
+    in
+    "{" ++ inner ++ "}"
