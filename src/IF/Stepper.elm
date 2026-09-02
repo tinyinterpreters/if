@@ -201,10 +201,10 @@ stepResultToString result =
             stateToString state
 
         Halted (Ok value) ->
-            valueToString False value
+            "Answer = " ++ valueToString False value
 
         Halted (Err _) ->
-            "Type error"
+            "Type error!"
 
 
 stateToString : State -> String
