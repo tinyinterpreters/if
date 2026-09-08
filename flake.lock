@@ -37,8 +37,7 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs",
-        "ti": "ti"
+        "nixpkgs": "nixpkgs"
       }
     },
     "systems": {
@@ -53,21 +52,6 @@
       "original": {
         "owner": "nix-systems",
         "repo": "default",
-        "type": "github"
-      }
-    },
-    "ti": {
-      "locked": {
-        "lastModified": 1788870588,
-        "narHash": "sha256-bpAzmUcCfm6eT4XvLNDqa3GbY417NZbmlUZyrtcAhyM=",
-        "owner": "tinyinterpreters",
-        "repo": "nix",
-        "rev": "ff22473898f928c0c4f2eaa485620efb992d71a6",
-        "type": "github"
-      },
-      "original": {
-        "owner": "tinyinterpreters",
-        "repo": "nix",
         "type": "github"
       }
     }
