@@ -18,7 +18,9 @@ even though the else branch would produce a runtime type error if it were evalua
 
 For a closer look, read [IF: Conditional Expressions and Selective Evaluation](https://blog.tinyinterpreters.dev/posts/if/).
 
-To try it, you'll need [Nix](https://zero-to-nix.com/start/install/) with flakes enabled.
+## Try it
+
+You'll need [Nix](https://nixos.org/) with flakes enabled.
 
 ```bash
 nix develop
