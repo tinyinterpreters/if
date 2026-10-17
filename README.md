@@ -2,11 +2,9 @@
 
 A stepper for [IF](https://github.com/tinyinterpreters/if).
 
-## Usage
+## Try it
 
-You'll need [Nix](https://zero-to-nix.com/start/install/) with flakes enabled.
-
-Enter the development environment and start the Elm reactor:
+You'll need [Nix](https://nixos.org/) with flakes enabled.
 
 ```bash
 nix develop
